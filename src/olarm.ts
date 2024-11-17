@@ -199,7 +199,7 @@ export class Olarm {
 				this.refreshToken,
 			);
 
-			// await this.login();
+			await this.login();
 			return;
 		}
 
