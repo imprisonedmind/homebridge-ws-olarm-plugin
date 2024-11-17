@@ -1,7 +1,8 @@
-import {CharacteristicValue, PlatformAccessory, Service} from "homebridge";
+import { Service, PlatformAccessory, CharacteristicValue } from "homebridge";
 
-import {OlarmHomebridgePlatform} from "./platform";
-import {Olarm, OlarmArea, OlarmAreaAction, OlarmAreaState} from "./olarm";
+import { OlarmHomebridgePlatform } from "./platform";
+import { Olarm, OlarmArea, OlarmAreaState } from "./olarm";
+import { OlarmAreaAction } from "./olarm";
 
 /**
  * Platform Accessory
@@ -55,12 +56,6 @@ export class OlarmAreaPlatformAccessory {
 		// Initialize the states
 		this.currentState = this.accessory.context.area.areaState;
 		this.targetState = this.currentState;
-
-		// Load tokens from accessory context
-		this.platform.olarm.accessToken = this.accessory.context.accessToken;
-		this.platform.olarm.refreshToken = this.accessory.context.refreshToken;
-		this.platform.olarm.tokenExpiration =
-			this.accessory.context.tokenExpiration;
 
 		// /**
 		//  * Updating characteristics values asynchronously.

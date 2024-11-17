@@ -8,9 +8,12 @@ import type {
 	Service,
 } from "homebridge";
 
-import {PLATFORM_NAME, PLUGIN_NAME} from "./settings";
-import {OlarmAreaPlatformAccessory} from "./platformAccessory";
-import {Olarm} from "./olarm";
+import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
+import { OlarmAreaPlatformAccessory } from "./platformAccessory";
+import { Olarm } from "./olarm";
+
+import { AuthStorage } from "./authStorage";
+import * as path from "path";
 
 /**
  * HomebridgePlatform
@@ -23,7 +26,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		this.api.hap.Characteristic;
 	public readonly olarm: Olarm;
 
-	// this is used to track restored cached accessories
+	// this is used to track restored cached accessorzies
 	public readonly accessories: PlatformAccessory[] = [];
 
 	constructor(
@@ -33,12 +36,16 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	) {
 		this.log.debug("Finished initializing platform:", this.config.name);
 
+		const storagePath = path.join(this.api.user.storagePath(), "tokens.json");
+		const authStorage = new AuthStorage(storagePath);
+
 		// Set up olarm
 		// this.olarm = new Olarm(this.config.apiKey, this.log);
 		this.olarm = new Olarm({
 			userEmailPhone: this.config.userEmailPhone,
 			userPass: this.config.userPass,
-			log: this.log, // Pass the log property
+			log: this.log,
+			authStorage: authStorage,
 		});
 
 		// When this event is fired it means Homebridge has restored all cached accessories from disk.
