@@ -44,6 +44,70 @@ export class Olarm {
 		this.log = log;
 	}
 
+	// Get all the available areas we have
+	getAreas = async (): Promise<OlarmArea[]> => {
+		await this.ensureAccessToken();
+
+		if (!this.userIndex) {
+			await this.fetchUserIndex();
+		}
+
+		this.log.debug("Fetching areas from Olarm API");
+		const response = await fetch(
+			`https://api-legacy.olarm.com/api/v2/users/${this.userIndex}`,
+			{
+				method: "GET",
+				headers: {Authorization: `Bearer ${this.accessToken}`},
+			},
+		);
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(
+				`Failed to fetch devices: ${response.status} ${response.statusText} - ${errorText}`,
+			);
+		}
+
+		const payload = await response.json();
+		this.log.info(payload);
+
+		const olarmAreas: OlarmArea[] = [];
+
+		for (const device of payload.devices) {
+			for (const [i, l] of device.profile.areasLabels.entries()) {
+				olarmAreas.push({
+					areaName: l,
+					areaState: device.state.areas[i],
+					areaNumber: i + 1,
+					deviceId: device.id,
+				});
+			}
+		}
+
+		return olarmAreas;
+	};
+
+	setArea = async (area: OlarmArea, action: OlarmAreaAction) => {
+		await this.ensureAccessToken();
+
+		const response = await fetch(
+			`https://api.olarm.com/api/v4/devices/${area.deviceId}/actions`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					actionCmd: action,
+					actionNum: area.areaNumber,
+				}),
+			},
+		);
+		const result = await response.text();
+		this.log.info("Response:", result);
+	};
+
 	// first time round we login to our user credentials supplied.
 	private async login() {
 		const response = await fetch(
@@ -140,68 +204,4 @@ export class Olarm {
 		this.log.debug(`We have the user index: ${data.userIndex}`);
 		this.userIndex = data.userIndex;
 	}
-
-	// Get all the available areas we have
-	getAreas = async (): Promise<OlarmArea[]> => {
-		await this.ensureAccessToken();
-
-		if (!this.userIndex) {
-			await this.fetchUserIndex();
-		}
-
-		this.log.debug("Fetching areas from Olarm API");
-		const response = await fetch(
-			`https://api-legacy.olarm.com/api/v2/users/${this.userIndex}`,
-			{
-				method: "GET",
-				headers: {Authorization: `Bearer ${this.accessToken}`},
-			},
-		);
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to fetch devices: ${response.status} ${response.statusText} - ${errorText}`,
-			);
-		}
-
-		const payload = await response.json();
-		this.log.info(payload);
-
-		const olarmAreas: OlarmArea[] = [];
-
-		for (const device of payload.devices) {
-			for (const [i, l] of device.profile.areasLabels.entries()) {
-				olarmAreas.push({
-					areaName: l,
-					areaState: device.state.areas[i],
-					areaNumber: i + 1,
-					deviceId: device.id,
-				});
-			}
-		}
-
-		return olarmAreas;
-	};
-
-	setArea = async (area: OlarmArea, action: OlarmAreaAction) => {
-		await this.ensureAccessToken();
-
-		const response = await fetch(
-			`https://api.olarm.com/api/v4/devices/${area.deviceId}/actions`,
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					actionCmd: action,
-					actionNum: area.areaNumber,
-				}),
-			},
-		);
-		const result = await response.text();
-		this.log.info("Response:", result);
-	};
 }

@@ -1,8 +1,7 @@
-import { Service, PlatformAccessory, CharacteristicValue } from "homebridge";
+import {CharacteristicValue, PlatformAccessory, Service} from "homebridge";
 
-import { OlarmHomebridgePlatform } from "./platform";
-import { Olarm, OlarmArea, OlarmAreaState } from "./olarm";
-import { OlarmAreaAction } from "./olarm";
+import {OlarmHomebridgePlatform} from "./platform";
+import {Olarm, OlarmArea, OlarmAreaAction, OlarmAreaState} from "./olarm";
 
 /**
  * Platform Accessory
