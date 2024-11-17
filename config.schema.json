@@ -1,21 +1,26 @@
 {
-  "pluginAlias": "OlarmHomebridgePlugin",
-  "pluginType": "platform",
-  "singular": true,
-  "schema": {
-    "type": "object",
-    "properties": {
-      "name": {
-        "title": "Name",
-        "type": "string",
-        "required": true,
-        "default": "My Olarm"
-      },
-      "apiKey": {
-        "type": "string",
-        "title": "API Key",
-        "description": "The API key from your Olarm account. This is obtained at https://user.olarm.co/#/api."
-      }
-    }
-  }
+	"pluginAlias": "OlarmHomebridgePlugin",
+	"pluginType": "platform",
+	"singular": true,
+	"schema": {
+		"type": "object",
+		"properties": {
+			"name": {
+				"title": "Name",
+				"type": "string",
+				"required": true,
+				"default": "My Olarm"
+			},
+			"userEmailPhone": {
+				"type": "string",
+				"title": "User Email or Phone",
+				"description": "The email or phone number used to log in to your Olarm account."
+			},
+			"userPass": {
+				"type": "string",
+				"title": "User Password",
+				"description": "The password used to log in to your Olarm account."
+			}
+		}
+	}
 }
