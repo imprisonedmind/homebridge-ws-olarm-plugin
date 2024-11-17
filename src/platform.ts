@@ -8,11 +8,11 @@ import type {
 	Service,
 } from "homebridge";
 
-import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
-import { OlarmAreaPlatformAccessory } from "./platformAccessory";
-import { Olarm } from "./olarm";
+import {PLATFORM_NAME, PLUGIN_NAME} from "./settings";
+import {OlarmAreaPlatformAccessory} from "./platformAccessory";
+import {Olarm} from "./olarm";
 
-import { AuthStorage } from "./authStorage";
+import {AuthStorage} from "./authStorage";
 import * as path from "path";
 
 /**

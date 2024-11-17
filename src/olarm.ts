@@ -1,8 +1,7 @@
-import type { Logger } from "homebridge";
+import type {Logger} from "homebridge";
 import fetch from "node-fetch";
-import { URLSearchParams } from "node:url";
-import { AuthStorage } from "./authStorage";
-import * as path from "path";
+import {URLSearchParams} from "node:url";
+import {AuthStorage} from "./authStorage";
 
 export interface OlarmArea {
 	areaName: string;
@@ -38,11 +37,11 @@ export class Olarm {
 	private readonly authStorage: AuthStorage;
 
 	constructor({
-		userEmailPhone,
-		userPass,
-		log,
-		authStorage,
-	}: {
+								userEmailPhone,
+								userPass,
+								log,
+								authStorage,
+							}: {
 		userEmailPhone: string;
 		userPass: string;
 		log: Logger;
@@ -81,7 +80,7 @@ export class Olarm {
 			`https://api-legacy.olarm.com/api/v2/users/${this.userIndex}`,
 			{
 				method: "GET",
-				headers: { Authorization: `Bearer ${this.accessToken}` },
+				headers: {Authorization: `Bearer ${this.accessToken}`},
 			},
 		);
 
@@ -174,7 +173,7 @@ export class Olarm {
 
 		const response = await fetch(url, {
 			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			headers: {"Content-Type": "application/x-www-form-urlencoded"},
 			body: formData.toString(),
 		});
 
