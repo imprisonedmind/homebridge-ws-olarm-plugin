@@ -15,7 +15,8 @@ This plugin creates a HomeKit interface for an [Olarm](https://olarm.co) alarm s
   "platform": "OlarmHomebridgePlugin",
   "name": "homebridge-olarm-plugin",
   "userEmailPhone": "<your preffered login method>",
-  "userEmailPhone": "<your password>"
+  "userPass": "<your password>"
+  "tokens": "tokens.json"
 }
 ```
 3. Restart your Homebridge
@@ -54,7 +55,7 @@ _Note: YMMV with setup guides below_
   "platform": "OlarmHomebridgePlugin",
   "name": "homebridge-olarm-plugin",
   "userEmailPhone": "<your preffered login method>",
-  "userEmailPhone": "<your password>"
+  "tokens": "tokens.json"
 }
 ```
 4. Restart your Homebridge `sudo systemctl restart homebridge`
