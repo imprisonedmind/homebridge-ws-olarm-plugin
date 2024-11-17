@@ -7,13 +7,15 @@ This plugin creates a HomeKit interface for an [Olarm](https://olarm.co) alarm s
 ### Installing
 
 1. On your Homebridge device, run `npm i -g homebridge-olarm-plugin`
-2. Create an API key on Olarm ([here](https://user.olarm.co/#/api))
+2. ~~Create an API key on Olarm ([here](https://user.olarm.co/#/api))~~ // no longer 
+   required, prefer user/pass auth.
 2. Set up the new platform in your Homebridge config.json
 ```
 {
   "platform": "OlarmHomebridgePlugin",
   "name": "homebridge-olarm-plugin",
-  "apiKey": "<YOUR OLARM API KEY>"
+  "userEmailPhone": "<your preffered login method>",
+  "userEmailPhone": "<your password>"
 }
 ```
 3. Restart your Homebridge
