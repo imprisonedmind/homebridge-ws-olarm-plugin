@@ -53,7 +53,8 @@ _Note: YMMV with setup guides below_
 {
   "platform": "OlarmHomebridgePlugin",
   "name": "homebridge-olarm-plugin",
-  "apiKey": "<use your olarm api key>"
+  "userEmailPhone": "<your preffered login method>",
+  "userEmailPhone": "<your password>"
 }
 ```
 4. Restart your Homebridge `sudo systemctl restart homebridge`
