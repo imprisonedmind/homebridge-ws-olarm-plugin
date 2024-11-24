@@ -23,7 +23,7 @@ For installation, usage and contribution please see the
 ### Examples
 
 <div style="display: flex; gap: 20px;">
- <video src="https://i.imgur.com/7hk5Rwl.mp4"/>
+ <video src="https://i.imgur.com/7hk5Rwl.mp4"></video>
   <a href="https://i.imgur.com/7hk5Rwl.mp4">
     <img src="https://i.imgur.com/stV4py9.png" alt="iOS Siri" style="width: 150px;">
   </a>
