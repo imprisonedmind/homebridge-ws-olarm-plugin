@@ -83,6 +83,8 @@ export class Olarm {
 				return OlarmAreaState.Disarmed;
 			case "stay":
 				return OlarmAreaState.ArmedStay;
+			case "sleep":
+				return OlarmAreaState.ArmedSleep;
 			case "notready":
 				return OlarmAreaState.NotReady;
 			case "activated":
