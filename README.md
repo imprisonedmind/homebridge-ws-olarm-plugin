@@ -14,7 +14,7 @@ Home Interfaces with
 <br><br>
 I would like to thank [Louw Hopley](https://github.com/LouwHopley), as his
 [repo](https://github.com/LouwHopley/homebridge-olarm-plugin)
-gave me a significant amount of work to stand upon.
+gave me a significant starting point.
 
 
 ## More Information
