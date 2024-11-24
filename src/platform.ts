@@ -11,11 +11,8 @@ import type {
 import {PLATFORM_NAME, PLUGIN_NAME} from "./settings";
 import {OlarmAreaPlatformAccessory} from "./platformAccessory";
 import {Olarm} from "./olarm";
-
-import * as path from "path";
-import storage from 'node-persist';
-import mqtt, {MqttClient} from 'mqtt';
-import {Auth} from "./auth";
+import mqtt from 'mqtt';
+import {Auth, Device} from "./auth";
 
 /**
  * HomebridgePlatform
@@ -27,9 +24,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
 	public olarm: Olarm | undefined;
-	public mqttClient: MqttClient | undefined;
 	private auth: Auth | undefined;
-	private readonly storage: storage.LocalStorage;
 
 	// this is used to track restored cached accessories
 	public readonly accessories: PlatformAccessory[] = [];
@@ -41,11 +36,6 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	) {
 		this.log.debug("Finished initializing platform:", this.config.name);
 
-		// Initialize node-persist storage
-		this.storage = storage.create({
-			dir: path.join(this.api.user.persistPath(), PLATFORM_NAME),
-		});
-
 		// When this event is fired it means Homebridge has restored all cached accessories from disk.
 		// Dynamic Platform plugins should only register new accessories after this event was fired,
 		// in order to ensure they weren't added to homebridge already. This event can also be used
@@ -53,38 +43,26 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		this.api.on("didFinishLaunching", () => {
 			this.initializePlugin()
 		});
-
-		this.storage.init().then(() => {
-			this.log.debug('Storage initialized');
-
-			// Initialize Auth
-			this.auth = new Auth({
-				userEmailPhone: this.config.userEmailPhone,
-				userPass: this.config.userPass,
-				storage: this.storage,
-				log: this.log,
-			});
-
-		});
 	}
 
 	private async initializePlugin() {
 		try {
-			await this.storage.init();
 			this.log.debug('Storage initialized');
 
 			// Initialize Auth
 			this.auth = new Auth({
 				userEmailPhone: this.config.userEmailPhone,
 				userPass: this.config.userPass,
-				storage: this.storage,
 				log: this.log,
 			});
 
 			await this.auth.initialize();
 
 			// Initialize Olarm
-			this.olarm = new Olarm({auth: this.auth, log: this.log});
+			this.olarm = new Olarm({
+				auth: this.auth,
+				log: this.log,
+			});
 
 			// Initialize MQTT and Discover Devices
 			await this.initializeOlarmAndMQTT();
@@ -93,49 +71,63 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		}
 	}
 
-
 	private async initializeOlarmAndMQTT() {
-		// Initialize Olarm
-		this.olarm = new Olarm({auth: this.auth!, log: this.log});
+		// Use devices from Auth instance
+		const devices = this.auth!.getDevices();
 
-		// Get tokens for MQTT
+		if (!devices || devices.length === 0) {
+			this.log.error('No devices found for this user.');
+			return;
+		}
+
+		// Initialize MQTT for each device
+		for (const device of devices) {
+			await this.initializeMQTTForDevice(device);
+		}
+	}
+
+	private async initializeMQTTForDevice(device: Device) {
+		// MQTT Connection Options
 		const tokens = this.auth!.getTokens();
 		if (!tokens.accessToken) {
 			this.log.error('No access token available for MQTT connection');
 			return;
 		}
 
-		// MQTT Connection Options
 		const mqttOptions: mqtt.IClientOptions = {
-			host: "mqtt-ws.olarm.com",
+			host: 'mqtt-ws.olarm.com',
 			port: 443,
 			username: 'native_app',
 			protocol: 'wss',
 			password: tokens.accessToken,
-			clientId: `native-app-oauth-${this.config.imei}`, // unique client ID
+			clientId: `native-app-oauth-${device.IMEI}`,
 		};
 
 		this.log.debug('MQTT Options:', mqttOptions);
-		this.mqttClient = mqtt.connect(mqttOptions);
 
-		this.mqttClient.on('message', (topic, message) => {
-			this.log.info('[MQTT] General <-', topic);
+		const mqttClient = mqtt.connect(mqttOptions);
+
+		mqttClient.on('message', (topic, message) => {
+			this.log.info('[MQTT] Message received', topic);
+			// Pass device.id to processMqttMessage
+			this.olarm!.processMqttMessage(device.id, topic, message.toString());
+			// After processing the message, update devices
+			this.discoverDevices();
 		});
 
-		this.mqttClient.on('connect', () => {
-			this.log.info('[MQTT] Connected', this.config.ssc);
-			const subTopic = `so/app/v1/867556040470604`;
-			this.mqttClient?.subscribe(subTopic, (err) => {
+		mqttClient.on('connect', () => {
+			this.log.info('[MQTT] Connected');
+			const subTopic = `so/app/v1/${device.IMEI}`;
+			mqttClient.subscribe(subTopic, (err) => {
 				if (err) {
 					this.log.error(`Failed to subscribe to topic: ${err}`);
 				} else {
 					this.log.info(`Subscribed to topic: ${subTopic}`);
-					// this.discoverDevices();
 				}
 			});
 		});
 
-		this.mqttClient.on('error', (error) => {
+		mqttClient.on('error', (error) => {
 			this.log.error('MQTT Client Error:', error);
 		});
 	}
@@ -158,7 +150,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	 * must not be registered again to prevent "duplicate UUID" errors.
 	 */
 	async discoverDevices() {
-		const olarmAreas = await this.olarm!.getAreas();
+		const olarmAreas = this.olarm!.getAreas();
 
 		this.log.info(
 			`Retrieved areas from Olarm: ${olarmAreas.map((a) => a.areaName).join(", ")}`,
@@ -246,4 +238,5 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 			}
 		}
 	}
+
 }

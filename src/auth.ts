@@ -1,7 +1,10 @@
-import {Logger} from 'homebridge';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as os from 'os';
+import { Logger } from 'homebridge';
 import fetch from 'node-fetch';
-import {URLSearchParams} from 'url';
-import * as storage from 'node-persist';
+import { URLSearchParams } from 'url';
+
 
 export interface Tokens {
 	userIndex: number | null;
@@ -10,32 +13,40 @@ export interface Tokens {
 	tokenExpiration: number | null;
 }
 
+export interface Device {
+	id: string;
+	IMEI: string;
+	// Add other device properties as needed
+}
+
+interface authProps {
+	userEmailPhone: string;
+	userPass: string;
+	log: Logger;
+}
+
 export class Auth {
 	private userEmailPhone: string;
 	private userPass: string;
-	private storage: storage.LocalStorage;
 	private log: Logger;
 
 	private userIndex: number | null = null;
 	private accessToken: string | null = null;
 	private refreshToken: string | null = null;
 	private tokenExpiration: number | null = null;
+	private devices: Device[] = [];
+	private tokensFilePath: string;
 
-	constructor({
-								userEmailPhone,
-								userPass,
-								storage,
-								log,
-							}: {
-		userEmailPhone: string;
-		userPass: string;
-		storage: storage.LocalStorage;
-		log: Logger;
-	}) {
+	constructor({userEmailPhone, userPass, log}: authProps) {
 		this.userEmailPhone = userEmailPhone;
 		this.userPass = userPass;
-		this.storage = storage;
 		this.log = log;
+
+		// Set tokens file path (e.g., ~/.olarmws-plugin/tokens.json)
+		this.tokensFilePath = path.join(os.homedir(), '.olarmws-plugin', 'tokens.json');
+
+		// Ensure directory exists
+		fs.ensureDirSync(path.dirname(this.tokensFilePath));
 	}
 
 	public async initialize() {
@@ -47,6 +58,7 @@ export class Auth {
 			// Optionally refresh the access token if it's expired
 			await this.ensureAccessToken();
 		}
+		await this.fetchDevices()
 	}
 
 	public getTokens(): Tokens {
@@ -112,6 +124,41 @@ export class Auth {
 		this.userIndex = data.userIndex;
 	}
 
+	private async fetchDevices() {
+		if (!this.accessToken || !this.userIndex) {
+			throw new Error('Access token or user index is missing');
+		}
+
+		const url = `https://api-legacy.olarm.com/api/v2/users/${this.userIndex}`;
+		const response = await fetch(url, {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${this.accessToken}`,
+			},
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(
+				`Failed to fetch devices: ${response.status} ${response.statusText} - ${errorText}`
+			);
+		}
+
+		const data = await response.json();
+		this.devices = data.devices.map((device: any) => ({
+			id: device.id,
+			IMEI: device.IMEI,
+			// Map other necessary properties
+		}));
+
+		this.log.debug(`Fetched devices: ${JSON.stringify(this.devices, null, 2)}`);
+	}
+
+	// Add getter to retrieve the devices
+	public getDevices(): Device[] {
+		return this.devices;
+	}
+
 	private async refreshAccessToken() {
 		if (!this.refreshToken) {
 			this.log.error('No stored refresh token, logging in...', this.refreshToken);
@@ -129,6 +176,7 @@ export class Auth {
 			throw new Error('Token refresh failed');
 		}
 		const data = await response.json();
+		this.log.info("[accessToken]", data.oat)
 		this.accessToken = data.oat;
 		this.refreshToken = data.ort;
 		this.tokenExpiration = data.oatExpire;
@@ -142,11 +190,10 @@ export class Auth {
 	}
 
 	// Storage methods
-
 	private async loadTokensFromStorage() {
 		try {
-			const tokens: Tokens = await this.storage.getItem('tokens');
-			if (tokens) {
+			if (fs.existsSync(this.tokensFilePath)) {
+				const tokens: Tokens = await fs.readJSON(this.tokensFilePath);
 				this.userIndex = tokens.userIndex;
 				this.accessToken = tokens.accessToken;
 				this.refreshToken = tokens.refreshToken;
@@ -177,7 +224,7 @@ export class Auth {
 				tokenExpiration: this.tokenExpiration,
 			};
 			try {
-				await this.storage.setItem('tokens', tokens);
+				await fs.writeJSON(this.tokensFilePath, tokens);
 				this.log.debug('Tokens saved to storage');
 			} catch (error) {
 				this.log.error('Failed to save tokens to storage:', error);
@@ -186,4 +233,5 @@ export class Auth {
 			this.log.warn('Skipping saving tokens to storage due to missing values');
 		}
 	}
+	// end
 }
