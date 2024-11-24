@@ -2,7 +2,7 @@
   "name": "homebridge-ws-olarm-plugin",
   "displayName": "OlarmWSHomebridgePlugin",
   "version": "1.0.1",
-  "description": "A HomeKit interface for an [Olarm](https://olarm.co) alarm system.",
+  "description": "A HomeKit interface for an [Olarm](https://olarm.co) alarm system, utilising web-sockets.",
   "main": "dist/index.js",
   "scripts": {
     "build": "rimraf ./dist && tsc",
