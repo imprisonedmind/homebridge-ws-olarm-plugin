@@ -1,3 +1,7 @@
+![Node.js Version](https://img.shields.io/badge/node-%3E%3D14.18.1-blue?logo=node.js&logoColor=white)
+![npm Downloads](https://img.shields.io/npm/dm/homebridge-ws-olarm-plugin?color=orange&logo=npm&logoColor=white)
+![GitHub Stars](https://img.shields.io/github/stars/imprisonedmind/homebridge-ws-olarm-plugin?color=green&logo=github&logoColor=white)
+
 ## Description
 
 This plugin utilises WebSockets and [MQTT](https://github.com/mqttjs) to speak
