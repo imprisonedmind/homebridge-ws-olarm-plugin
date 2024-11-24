@@ -1,8 +1,7 @@
 ![Frame 1](https://github.com/user-attachments/assets/ef78a6a9-4f36-47f1-aefb-f158000a25fb)
 
-![Node.js Version](https://img.shields.io/badge/node-%3E%3D14.18.1-blue?logo=node.js&logoColor=white)
-![npm Downloads](https://img.shields.io/npm/dm/homebridge-ws-olarm-plugin?color=orange&logo=npm&logoColor=white)
-![GitHub Stars](https://img.shields.io/github/stars/imprisonedmind/homebridge-ws-olarm-plugin?color=green&logo=github&logoColor=white)
+[![npm](https://img.shields.io/npm/v/homebridge-ws-olarm-plugin?color=red)](https://www.npmjs.com/package/homebridge-ws-olarm-plugin)
+![Node.js Version](https://img.shields.io/badge/node-%3E%3D14.18.1-green?logo=node.js&logoColor=white)
 
 ## Description
 
