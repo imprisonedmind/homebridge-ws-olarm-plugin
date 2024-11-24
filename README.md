@@ -1,4 +1,4 @@
-![Frame 1](https://github.com/user-attachments/assets/6da33bd3-cff0-4073-8d85-f0f01c064e46)
+![Frame 1](https://github.com/user-attachments/assets/ef78a6a9-4f36-47f1-aefb-f158000a25fb)
 
 ![Node.js Version](https://img.shields.io/badge/node-%3E%3D14.18.1-blue?logo=node.js&logoColor=white)
 ![npm Downloads](https://img.shields.io/npm/dm/homebridge-ws-olarm-plugin?color=orange&logo=npm&logoColor=white)
