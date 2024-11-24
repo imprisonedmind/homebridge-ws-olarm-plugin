@@ -17,16 +17,14 @@ I would thank [Louw Hopley](https://github.com/LouwHopley), as his
 [repo](https://github.com/LouwHopley/homebridge-olarm-plugin)
 gave me a significant amount of work to stand upon.
 
----
 
-### More Information
+## More Information
 
 For installation, usage and contribution please see the
 [Wiki](https://github.com/imprisonedmind/homebridge-ws-olarm-plugin/wiki)
 
----
 
-### Examples
+## Examples
 
 <div style="display: flex; gap: 24px;">
   <a href="https://i.imgur.com/7hk5Rwl.mp4">
