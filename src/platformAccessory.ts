@@ -99,8 +99,10 @@ export class OlarmAreaPlatformAccessory {
 				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
 			case OlarmAreaState.NotReady:
 				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
-			case OlarmAreaState.Triggered: // todo
+			case OlarmAreaState.Triggered:
+				return this.platform.Characteristic.SecuritySystemCurrentState.ALARM_TRIGGERED;
 			default:
+				this.platform.log.warn(`Unknown state received: ${s}, defaulting to DISARMED`);
 				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
 		}
 	};
@@ -115,10 +117,10 @@ export class OlarmAreaPlatformAccessory {
 				return OlarmAreaState.ArmedSleep;
 			case this.platform.Characteristic.SecuritySystemCurrentState.DISARMED:
 				return OlarmAreaState.Disarmed;
-			case this.platform.Characteristic.SecuritySystemCurrentState
-				.ALARM_TRIGGERED:
-				return OlarmAreaState.Triggered; // todo
+			case this.platform.Characteristic.SecuritySystemCurrentState.ALARM_TRIGGERED:
+				return OlarmAreaState.Triggered;
 			default:
+				this.platform.log.warn(`Unknown HomeKit state received: ${s}, defaulting to Disarmed`);
 				return OlarmAreaState.Disarmed;
 		}
 	};
@@ -131,25 +133,34 @@ export class OlarmAreaPlatformAccessory {
 		const area = this.accessory.context.area as OlarmArea;
 		const olarmArea = olarmAreas.find((oa) => oa.areaName === area.areaName);
 
-		this.platform.log.info(
-			`GET CurrentState (${olarmArea?.areaName}) from ${this.currentState} to ${olarmArea!.areaState} (target: ${this.targetState})`,
-		);
-		this.currentState = olarmArea!.areaState;
+		if (!olarmArea) {
+			this.platform.log.error(`Area ${area.areaName} not found`);
+			return this.convertFromOlarmAreaState(this.currentState);
+		}
 
-		if (this.currentState !== OlarmAreaState.NotReady)
+		this.platform.log.info(
+			`GET CurrentState (${olarmArea.areaName}) from ${this.currentState} to ${olarmArea.areaState} (target: ${this.targetState})`,
+		);
+
+		this.currentState = olarmArea.areaState;
+
+		// Only update target state if current state is not NotReady or Triggered
+		if (this.currentState !== OlarmAreaState.NotReady && this.currentState !== OlarmAreaState.Triggered) {
 			this.targetState = this.currentState;
+		}
 
 		// Update HomeKit state
 		this.service.updateCharacteristic(
 			this.platform.Characteristic.SecuritySystemCurrentState,
 			this.convertFromOlarmAreaState(this.currentState),
 		);
+
 		this.service.updateCharacteristic(
 			this.platform.Characteristic.SecuritySystemTargetState,
 			this.convertFromOlarmAreaState(this.targetState),
 		);
 
-		return this.convertFromOlarmAreaState(olarmArea!.areaState);
+		return this.convertFromOlarmAreaState(olarmArea.areaState);
 	}
 
 	/**
