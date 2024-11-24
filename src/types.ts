@@ -38,12 +38,14 @@ export enum OlarmAreaState {
 	Armed = 'arm',
 	Disarmed = 'disarm',
 	ArmedStay = 'stay',
+	ArmedSleep = 'sleep',
 	NotReady = 'notready',
 	Triggered = 'activated',
 }
 
 export enum OlarmAreaAction {
-	Arm = 'area-arm',
-	Stay = 'area-stay',
-	Disarm = 'area-disarm',
+	Arm = 'arm',
+	Stay = 'stay',
+	Disarm = 'disarm',
+	Sleep = 'sleep',
 }

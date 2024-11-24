@@ -11,7 +11,7 @@ import type {
 import {PLATFORM_NAME, PLUGIN_NAME} from "./settings";
 import {OlarmAreaPlatformAccessory} from "./platformAccessory";
 import {Olarm} from "./olarm";
-import mqtt from 'mqtt';
+import mqtt, {MqttClient} from 'mqtt';
 import {Auth, Device} from "./auth";
 
 /**
@@ -25,6 +25,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 
 	public olarm: Olarm | undefined;
 	private auth: Auth | undefined;
+	private mqttClients: Map<string, MqttClient> = new Map();
 
 	// this is used to track restored cached accessories
 	public readonly accessories: PlatformAccessory[] = [];
@@ -62,6 +63,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 			this.olarm = new Olarm({
 				auth: this.auth,
 				log: this.log,
+				mqttClients: this.mqttClients,
 			});
 
 			// Initialize MQTT and Discover Devices
@@ -117,12 +119,26 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 
 		mqttClient.on('connect', () => {
 			this.log.info('[MQTT] Connected');
+
+			// Subscribe to the topic to receive messages from the device
 			const subTopic = `so/app/v1/${device.IMEI}`;
 			mqttClient.subscribe(subTopic, (err) => {
 				if (err) {
 					this.log.error(`Failed to subscribe to topic: ${err}`);
 				} else {
 					this.log.info(`Subscribed to topic: ${subTopic}`);
+
+					// Publish the initial GET message to prompt device status
+					const statusTopic = `si/app/v2/${device.IMEI}/status`;
+					const message = JSON.stringify({ method: "GET" });
+
+					mqttClient.publish(statusTopic, message, { qos: 1 }, (error) => {
+						if (error) {
+							this.log.error(`Failed to publish to topic ${statusTopic}:`, error);
+						} else {
+							this.log.info(`Published GET request to topic ${statusTopic}`);
+						}
+					});
 				}
 			});
 		});
@@ -130,6 +146,9 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		mqttClient.on('error', (error) => {
 			this.log.error('MQTT Client Error:', error);
 		});
+
+		// Store the mqttClient
+		this.mqttClients.set(device.id, mqttClient);
 	}
 
 

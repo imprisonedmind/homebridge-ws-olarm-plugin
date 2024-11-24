@@ -24,7 +24,6 @@ export class OlarmAreaPlatformAccessory {
 
 		// get the SecuritySystem service if it exists, otherwise create a new SecuritySystem service
 		// you can create multiple services for each accessory
-
 		this.service =
 			this.accessory.getService(this.platform.Service.SecuritySystem) ||
 			this.accessory.addService(this.platform.Service.SecuritySystem);
@@ -81,19 +80,21 @@ export class OlarmAreaPlatformAccessory {
 
 	convertFromOlarmAreaState = (s: OlarmAreaState): CharacteristicValue => {
 		/**
-		 * APPLE  OLARM
-		 * Home   <unused> -> Stay
-		 * Away   Armed
-		 * Night  Stay
-		 * Off    Disarmed
+		 * APPLE  			OLARM
+		 * Home   			Stay
+		 * Away   			Armed
+		 * Night  			Sleep
+		 * Off    			Disarmed
+		 * Triggered    ??         // TODO
 		 * ...
 		 */
 		switch (s) {
 			case OlarmAreaState.Armed:
-				return this.platform.Characteristic.SecuritySystemCurrentState.AWAY_ARM; // Away => Armed
+				return this.platform.Characteristic.SecuritySystemCurrentState.AWAY_ARM;
 			case OlarmAreaState.ArmedStay:
-				return this.platform.Characteristic.SecuritySystemCurrentState
-					.NIGHT_ARM; // Night => Stay
+				return this.platform.Characteristic.SecuritySystemCurrentState.STAY_ARM;
+			case OlarmAreaState.ArmedSleep:
+				return this.platform.Characteristic.SecuritySystemCurrentState.NIGHT_ARM;
 			case OlarmAreaState.Disarmed:
 				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
 			case OlarmAreaState.NotReady:
@@ -102,21 +103,16 @@ export class OlarmAreaPlatformAccessory {
 			default:
 				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
 		}
-		// static readonly STAY_ARM = 0; // "Home"
-		// static readonly AWAY_ARM = 1; // "Away"
-		// static readonly NIGHT_ARM = 2; // "Night"
-		// static readonly DISARMED = 3; // "Off"
-		// static readonly ALARM_TRIGGERED = 4; // ?
 	};
 
 	convertToOlarmAreaState = (s: CharacteristicValue): OlarmAreaState => {
 		switch (s) {
-			case this.platform.Characteristic.SecuritySystemCurrentState.STAY_ARM:
-				return OlarmAreaState.ArmedStay;
 			case this.platform.Characteristic.SecuritySystemCurrentState.AWAY_ARM:
 				return OlarmAreaState.Armed;
-			case this.platform.Characteristic.SecuritySystemCurrentState.NIGHT_ARM:
+			case this.platform.Characteristic.SecuritySystemCurrentState.STAY_ARM:
 				return OlarmAreaState.ArmedStay;
+			case this.platform.Characteristic.SecuritySystemCurrentState.NIGHT_ARM:
+				return OlarmAreaState.ArmedSleep;
 			case this.platform.Characteristic.SecuritySystemCurrentState.DISARMED:
 				return OlarmAreaState.Disarmed;
 			case this.platform.Characteristic.SecuritySystemCurrentState
@@ -174,11 +170,22 @@ export class OlarmAreaPlatformAccessory {
 
 		// Determine olarm action
 		const area = this.accessory.context.area;
-		let olarmAreaAction = OlarmAreaAction.Disarm;
-		if (olarmAreaStateValue === OlarmAreaState.Armed)
-			olarmAreaAction = OlarmAreaAction.Arm;
-		if (olarmAreaStateValue === OlarmAreaState.ArmedStay)
-			olarmAreaAction = OlarmAreaAction.Stay;
+		let olarmAreaAction;
+
+		switch (true) {
+			case (olarmAreaStateValue === OlarmAreaState.Armed):
+				olarmAreaAction = OlarmAreaAction.Arm
+				break;
+			case (olarmAreaStateValue === OlarmAreaState.ArmedStay):
+				olarmAreaAction = OlarmAreaAction.Stay
+				break;
+			case (olarmAreaStateValue === OlarmAreaState.ArmedSleep):
+				olarmAreaAction = OlarmAreaAction.Sleep
+				break;
+			default:
+				olarmAreaAction = OlarmAreaAction.Disarm
+				break;
+		}
 
 		this.platform.log.info(
 			`SET TargetState (${this.accessory.context.area.areaName}) from ${this.targetState} to ${olarmAreaStateValue} with "${olarmAreaAction}"`,

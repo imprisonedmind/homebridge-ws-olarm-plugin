@@ -31,6 +31,7 @@ export class Auth {
 	private log: Logger;
 
 	private userIndex: number | null = null;
+	private userId: string | null = null;
 	private accessToken: string | null = null;
 	private refreshToken: string | null = null;
 	private tokenExpiration: number | null = null;
@@ -71,7 +72,6 @@ export class Auth {
 	}
 
 	// Authentication methods
-
 	private async login() {
 		this.log.info('--- Logging In ---');
 		const response = await fetch(
@@ -122,6 +122,7 @@ export class Auth {
 		const data = await response.json();
 		this.log.debug(`We have the user index: ${data.userIndex}`);
 		this.userIndex = data.userIndex;
+		this.userId = data.userId;
 	}
 
 	private async fetchDevices() {
@@ -155,6 +156,15 @@ export class Auth {
 	}
 
 	// Add getter to retrieve the devices
+	// Add getters for userIndex and userId
+	public getUserIndex(): number | null {
+		return this.userIndex;
+	}
+
+	public getUserId(): string | null {
+		return this.userId;
+	}
+
 	public getDevices(): Device[] {
 		return this.devices;
 	}
@@ -176,7 +186,6 @@ export class Auth {
 			throw new Error('Token refresh failed');
 		}
 		const data = await response.json();
-		this.log.info("[accessToken]", data.oat)
 		this.accessToken = data.oat;
 		this.refreshToken = data.ort;
 		this.tokenExpiration = data.oatExpire;

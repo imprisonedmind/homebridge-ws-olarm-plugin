@@ -1,21 +1,25 @@
 import {Logger} from 'homebridge';
 import {AlarmPayload, OlarmArea, OlarmAreaAction, OlarmAreaState} from './types'; // Import types from a shared file
 import {Auth, Device} from './auth';
+import {MqttClient} from "mqtt";
 
 interface olarmProps {
 	auth: Auth;
 	log: Logger;
+	mqttClients: Map<string, MqttClient>;
 }
 
 export class Olarm {
 	private log: Logger;
 	private auth: Auth;
-	private areas: OlarmArea[] = []; // Internal state to hold areas
+	private areas: OlarmArea[] = [];
 	private devicesMap: Map<string, Device> = new Map();
+	private mqttClients: Map<string, MqttClient>;
 
-	constructor({auth, log}: olarmProps) {
+	constructor({auth, log, mqttClients}: olarmProps) {
 		this.auth = auth;
 		this.log = log;
+		this.mqttClients = mqttClients;
 
 		// Initialize devices map
 		const devices = this.auth.getDevices();
@@ -87,6 +91,52 @@ export class Olarm {
 
 	// Optionally, you can have methods to handle area actions as before
 	public async setArea(area: OlarmArea, action: OlarmAreaAction) {
-		// Implement action handling, possibly via MQTT or API calls
+		// Retrieve the MQTT client for the device
+		const mqttClient = this.mqttClients.get(area.deviceId);
+		if (!mqttClient) {
+			this.log.error(`No MQTT client found for deviceId ${area.deviceId}`);
+			return;
+		}
+
+		// Get the device object to retrieve IMEI
+		const device = this.devicesMap.get(area.deviceId);
+		if (!device) {
+			this.log.error(`Device not found for deviceId ${area.deviceId}`);
+			return;
+		}
+
+		// Get userIndex and userId from auth
+		const userIndex = this.auth.getUserIndex();
+		const userId = this.auth.getUserId();
+
+		if (!userIndex || !userId) {
+			this.log.error('User index or user ID is missing');
+			return;
+		}
+
+		// Construct the topic
+		const topic = `si/app/v2/${device.IMEI}/control`;
+
+		// Construct the payload
+		const payload = {
+			method: 'POST',
+			userIndex: userIndex.toString(),
+			userId: userId,
+			access_token: '', // Leave empty if required
+			data: [action, area.areaNumber],
+		};
+
+		const message = JSON.stringify(payload);
+
+		this.log.debug(`Publishing to topic ${topic}: ${message}`);
+
+		// Publish the action message
+		mqttClient.publish(topic, message, { qos: 1 }, (error) => {
+			if (error) {
+				this.log.error(`Failed to publish to topic ${topic}:`, error);
+			} else {
+				this.log.info(`Published action to topic ${topic}`);
+			}
+		});
 	}
 }
