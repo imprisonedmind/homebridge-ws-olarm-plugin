@@ -1,7 +1,7 @@
 {
   "name": "homebridge-ws-olarm-plugin",
   "displayName": "OlarmWSHomebridgePlugin",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "A WS/MQTT homebridge plugin for an [Olarm](https://olarm.co) alarm system.",
   "main": "dist/index.js",
   "scripts": {
@@ -17,7 +17,11 @@
   },
   "keywords": [
     "homebridge-plugin",
-    "olarm"
+    "olarm",
+    "olarm-pro",
+    "olarm-pro-4G",
+    "olarm-link",
+    "alarm-system"
   ],
   "license": "MIT",
   "files": [
