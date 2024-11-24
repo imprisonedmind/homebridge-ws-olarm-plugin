@@ -11,7 +11,7 @@ It's intent is to be used to control your alarm system via creating HomeKit and 
 Home Interfaces with
 [homebridge](https://github.com/homebridge/homebridge).
 <br><br>
-I would thank [LouwHopley](https://github.com/LouwHopley), as his
+I would thank [Louw Hopley](https://github.com/LouwHopley), as his
 [repo](https://github.com/LouwHopley/homebridge-olarm-plugin)
 gave me a significant amount of work to stand upon.
 
