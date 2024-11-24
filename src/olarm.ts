@@ -116,25 +116,13 @@ export class Olarm {
 			return;
 		}
 
-		// Get userIndex and userId from auth
-		const userIndex = this.auth.getUserIndex();
-		const userId = this.auth.getUserId();
-
-		if (!userIndex) {
-			this.log.error("User index is missing");
-			return;
-		}
-		if (!userId) {
-			this.log.error("user ID is missing");
-			return;
-		}
-
 		// Construct the topic
 		const topic = `si/app/v2/${device.IMEI}/control`;
 
 		// Construct the payload
 		const payload = {
 			method: "POST",
+			// TODO: these values are not enforced
 			// userIndex: userIndex.toString(),
 			// userId: userId,
 			// access_token: "", // Leave empty if required
