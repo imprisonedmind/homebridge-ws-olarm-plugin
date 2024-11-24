@@ -1,7 +1,7 @@
-import {CharacteristicValue, PlatformAccessory, Service} from "homebridge";
+import { Service, PlatformAccessory, CharacteristicValue } from "homebridge";
 
-import {OlarmHomebridgePlatform} from "./platform";
-import {OlarmArea, OlarmAreaAction, OlarmAreaState} from "./types";
+import { OlarmHomebridgePlatform } from "./platform";
+import { OlarmArea, OlarmAreaAction, OlarmAreaState } from "./types";
 
 /**
  * Platform Accessory
@@ -15,113 +15,127 @@ export class OlarmAreaPlatformAccessory {
 
 	constructor(
 		private readonly platform: OlarmHomebridgePlatform,
-		private readonly accessory: PlatformAccessory,
+		private readonly accessory: PlatformAccessory
 	) {
 		// set accessory information
 		this.accessory
 			.getService(this.platform.Service.AccessoryInformation)!
-			.setCharacteristic(this.platform.Characteristic.Manufacturer, "Olarm");
+			.setCharacteristic(
+				this.platform.Characteristic.Manufacturer,
+				"Olarm"
+			);
 
 		// get the SecuritySystem service if it exists, otherwise create a new SecuritySystem service
-		// you can create multiple services for each accessory
 		this.service =
-			this.accessory.getService(this.platform.Service.SecuritySystem) ||
-			this.accessory.addService(this.platform.Service.SecuritySystem);
+			this.accessory.getService(
+				this.platform.Service.SecuritySystem
+			) ||
+			this.accessory.addService(
+				this.platform.Service.SecuritySystem
+			);
 
-		// set the service name, this is what is displayed as the default name on the Home app
-		// in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
+		// set the service name
 		this.service.setCharacteristic(
 			this.platform.Characteristic.Name,
-			this.accessory.context.area.areaName,
+			this.accessory.context.area.areaName
 		);
-
-		// each service must implement at-minimum the "required characteristics" for the given service type
-		// see https://developers.homebridge.io/#/service/SecuritySystem
 
 		// register handlers for the SecuritySystemCurrentState Characteristic
 		this.service
 			.getCharacteristic(
-				this.platform.Characteristic.SecuritySystemCurrentState,
+				this.platform.Characteristic.SecuritySystemCurrentState
 			)
 			.onGet(this.handleSecuritySystemCurrentStateGet.bind(this));
 
 		// register handlers for the SecuritySystemTargetState Characteristic
 		this.service
-			.getCharacteristic(this.platform.Characteristic.SecuritySystemTargetState)
+			.getCharacteristic(
+				this.platform.Characteristic.SecuritySystemTargetState
+			)
 			.onGet(this.handleSecuritySystemTargetStateGet.bind(this))
 			.onSet(this.handleSecuritySystemTargetStateSet.bind(this));
 
 		// Initialize the states
-		this.currentState = this.accessory.context.area.areaState;
+		this.currentState =
+			this.accessory.context.area.areaState ||
+			OlarmAreaState.Disarmed;
 		this.targetState = this.currentState;
 
-		// /**
-		//  * Updating characteristics values asynchronously.
-		//  *
-		//  * Example showing how to update the state of a Characteristic asynchronously instead
-		//  * of using the `on('get')` handlers.
-		//  * Here we change update the motion sensor trigger states on and off every 10 seconds
-		//  * the `updateCharacteristic` method.
-		//  *
-		//  */
-		// let motionDetected = false;
-		// setInterval(() => {
-		//   // EXAMPLE - inverse the trigger
-		//   motionDetected = !motionDetected;
+		// Initialize the characteristics with default values
+		this.service.updateCharacteristic(
+			this.platform.Characteristic.SecuritySystemCurrentState,
+			this.convertFromOlarmAreaStateToCurrentState(this.currentState)
+		);
 
-		//   // push the new value to HomeKit
-		//   motionSensorOneService.updateCharacteristic(this.platform.Characteristic.MotionDetected, motionDetected);
-		//   motionSensorTwoService.updateCharacteristic(this.platform.Characteristic.MotionDetected, !motionDetected);
-
-		//   this.platform.log.debug('Triggering motionSensorOneService:', motionDetected);
-		//   this.platform.log.debug('Triggering motionSensorTwoService:', !motionDetected);
-		// }, 10000);
+		this.service.updateCharacteristic(
+			this.platform.Characteristic.SecuritySystemTargetState,
+			this.convertFromOlarmAreaStateToTargetState(this.targetState)
+		);
 	}
 
-	convertFromOlarmAreaState = (s: OlarmAreaState): CharacteristicValue => {
-		/**
-		 * APPLE  			OLARM
-		 * Home   			Stay
-		 * Away   			Armed
-		 * Night  			Sleep
-		 * Off    			Disarmed
-		 * Triggered    ??         // TODO
-		 * ...
-		 */
+	// Conversion function for SecuritySystemCurrentState
+	convertFromOlarmAreaStateToCurrentState = (
+		s: OlarmAreaState
+	): CharacteristicValue => {
 		switch (s) {
 			case OlarmAreaState.Armed:
-				return this.platform.Characteristic.SecuritySystemCurrentState.AWAY_ARM;
+				return this.platform.Characteristic.SecuritySystemCurrentState
+					.AWAY_ARM; // 1
 			case OlarmAreaState.ArmedStay:
-				return this.platform.Characteristic.SecuritySystemCurrentState.STAY_ARM;
-			case OlarmAreaState.ArmedSleep:
-				return this.platform.Characteristic.SecuritySystemCurrentState.NIGHT_ARM;
+				return this.platform.Characteristic.SecuritySystemCurrentState
+					.NIGHT_ARM; // 2
 			case OlarmAreaState.Disarmed:
-				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
 			case OlarmAreaState.NotReady:
-				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
+				return this.platform.Characteristic.SecuritySystemCurrentState
+					.DISARMED; // 3
 			case OlarmAreaState.Triggered:
-				return this.platform.Characteristic.SecuritySystemCurrentState.ALARM_TRIGGERED;
+				return this.platform.Characteristic.SecuritySystemCurrentState
+					.ALARM_TRIGGERED; // 4
 			default:
-				this.platform.log.warn(`Unknown state received: ${s}, defaulting to DISARMED`);
-				return this.platform.Characteristic.SecuritySystemCurrentState.DISARMED;
+				return this.platform.Characteristic.SecuritySystemCurrentState
+					.DISARMED; // Default to DISARMED
 		}
 	};
 
-	convertToOlarmAreaState = (s: CharacteristicValue): OlarmAreaState => {
+	// Conversion function for SecuritySystemTargetState
+	convertFromOlarmAreaStateToTargetState = (
+		s: OlarmAreaState
+	): CharacteristicValue => {
 		switch (s) {
-			case this.platform.Characteristic.SecuritySystemCurrentState.AWAY_ARM:
-				return OlarmAreaState.Armed;
-			case this.platform.Characteristic.SecuritySystemCurrentState.STAY_ARM:
-				return OlarmAreaState.ArmedStay;
-			case this.platform.Characteristic.SecuritySystemCurrentState.NIGHT_ARM:
-				return OlarmAreaState.ArmedSleep;
-			case this.platform.Characteristic.SecuritySystemCurrentState.DISARMED:
-				return OlarmAreaState.Disarmed;
-			case this.platform.Characteristic.SecuritySystemCurrentState.ALARM_TRIGGERED:
-				return OlarmAreaState.Triggered;
+			case OlarmAreaState.Armed:
+				return this.platform.Characteristic.SecuritySystemTargetState
+					.AWAY_ARM; // 1
+			case OlarmAreaState.ArmedStay:
+				return this.platform.Characteristic.SecuritySystemTargetState
+					.NIGHT_ARM; // 2
+			case OlarmAreaState.Disarmed:
+			case OlarmAreaState.NotReady:
+				return this.platform.Characteristic.SecuritySystemTargetState
+					.DISARM; // 3
 			default:
-				this.platform.log.warn(`Unknown HomeKit state received: ${s}, defaulting to Disarmed`);
+				return this.platform.Characteristic.SecuritySystemTargetState
+					.DISARM; // Default to DISARM
+		}
+	};
+
+	convertToOlarmAreaState = (
+		s: CharacteristicValue
+	): OlarmAreaState => {
+		switch (s) {
+			case this.platform.Characteristic.SecuritySystemTargetState
+				.STAY_ARM:
+				return OlarmAreaState.ArmedStay;
+			case this.platform.Characteristic.SecuritySystemTargetState
+				.AWAY_ARM:
+				return OlarmAreaState.Armed;
+			case this.platform.Characteristic.SecuritySystemTargetState
+				.NIGHT_ARM:
+				return OlarmAreaState.ArmedStay;
+			case this.platform.Characteristic.SecuritySystemTargetState
+				.DISARM:
 				return OlarmAreaState.Disarmed;
+			default:
+				return OlarmAreaState.Disarmed; // Default to Disarmed
 		}
 	};
 
@@ -129,38 +143,42 @@ export class OlarmAreaPlatformAccessory {
 	 * Handle requests to get the current value of the "Security System Current State" characteristic
 	 */
 	async handleSecuritySystemCurrentStateGet() {
-		const olarmAreas = await this.platform.olarm!.getAreas();
+		const olarmAreas = this.platform.olarm!.getAreas();
 		const area = this.accessory.context.area as OlarmArea;
-		const olarmArea = olarmAreas.find((oa) => oa.areaName === area.areaName);
+		const olarmArea = olarmAreas.find(
+			(oa) => oa.areaName === area.areaName
+		);
 
 		if (!olarmArea) {
-			this.platform.log.error(`Area ${area.areaName} not found`);
-			return this.convertFromOlarmAreaState(this.currentState);
+			this.platform.log.warn(
+				`No area data available for ${area.areaName}, returning default state.`
+			);
+			return this.convertFromOlarmAreaStateToCurrentState(
+				this.currentState
+			);
 		}
 
 		this.platform.log.info(
-			`GET CurrentState (${olarmArea.areaName}) from ${this.currentState} to ${olarmArea.areaState} (target: ${this.targetState})`,
+			`GET CurrentState (${olarmArea.areaName}) from ${this.currentState} to ${olarmArea.areaState} (target: ${this.targetState})`
 		);
-
 		this.currentState = olarmArea.areaState;
 
-		// Only update target state if current state is not NotReady or Triggered
-		if (this.currentState !== OlarmAreaState.NotReady && this.currentState !== OlarmAreaState.Triggered) {
+		if (this.currentState !== OlarmAreaState.NotReady)
 			this.targetState = this.currentState;
-		}
 
 		// Update HomeKit state
 		this.service.updateCharacteristic(
 			this.platform.Characteristic.SecuritySystemCurrentState,
-			this.convertFromOlarmAreaState(this.currentState),
+			this.convertFromOlarmAreaStateToCurrentState(this.currentState)
 		);
-
 		this.service.updateCharacteristic(
 			this.platform.Characteristic.SecuritySystemTargetState,
-			this.convertFromOlarmAreaState(this.targetState),
+			this.convertFromOlarmAreaStateToTargetState(this.targetState)
 		);
 
-		return this.convertFromOlarmAreaState(olarmArea.areaState);
+		return this.convertFromOlarmAreaStateToCurrentState(
+			this.currentState
+		);
 	}
 
 	/**
@@ -168,42 +186,33 @@ export class OlarmAreaPlatformAccessory {
 	 */
 	async handleSecuritySystemTargetStateGet() {
 		this.platform.log.info(
-			`GET TargetState (${this.accessory.context.area.areaName}) ${this.targetState} (current: ${this.currentState})`,
+			`GET TargetState (${this.accessory.context.area.areaName}) ${this.targetState} (current: ${this.currentState})`
 		);
-		return this.convertFromOlarmAreaState(this.targetState);
+		return this.convertFromOlarmAreaStateToTargetState(this.targetState);
 	}
 
 	/**
 	 * Handle requests to set the "Security System Target State" characteristic
 	 */
-	async handleSecuritySystemTargetStateSet(value: CharacteristicValue) {
+	async handleSecuritySystemTargetStateSet(
+		value: CharacteristicValue
+	) {
 		const olarmAreaStateValue = this.convertToOlarmAreaState(value);
 
 		// Determine olarm action
 		const area = this.accessory.context.area;
-		let olarmAreaAction;
-
-		switch (true) {
-			case (olarmAreaStateValue === OlarmAreaState.Armed):
-				olarmAreaAction = OlarmAreaAction.Arm
-				break;
-			case (olarmAreaStateValue === OlarmAreaState.ArmedStay):
-				olarmAreaAction = OlarmAreaAction.Stay
-				break;
-			case (olarmAreaStateValue === OlarmAreaState.ArmedSleep):
-				olarmAreaAction = OlarmAreaAction.Sleep
-				break;
-			default:
-				olarmAreaAction = OlarmAreaAction.Disarm
-				break;
-		}
+		let olarmAreaAction = OlarmAreaAction.Disarm;
+		if (olarmAreaStateValue === OlarmAreaState.Armed)
+			olarmAreaAction = OlarmAreaAction.Arm;
+		if (olarmAreaStateValue === OlarmAreaState.ArmedStay)
+			olarmAreaAction = OlarmAreaAction.Stay;
 
 		this.platform.log.info(
-			`SET TargetState (${this.accessory.context.area.areaName}) from ${this.targetState} to ${olarmAreaStateValue} with "${olarmAreaAction}"`,
+			`SET TargetState (${this.accessory.context.area.areaName}) from ${this.targetState} to ${olarmAreaStateValue} with "${olarmAreaAction}"`
 		);
 		this.targetState = olarmAreaStateValue;
 
-		// Ping olarm to update
+		// Send command to Olarm
 		await this.platform.olarm!.setArea(area, olarmAreaAction);
 
 		// Update actual state
@@ -212,17 +221,17 @@ export class OlarmAreaPlatformAccessory {
 			" - (SET) Updated",
 			this.accessory.context.area.areaName,
 			"to",
-			olarmAreaStateValue,
+			olarmAreaStateValue
 		);
 
 		// Update HomeKit state
 		this.service.updateCharacteristic(
 			this.platform.Characteristic.SecuritySystemCurrentState,
-			this.convertFromOlarmAreaState(this.currentState),
+			this.convertFromOlarmAreaStateToCurrentState(this.currentState)
 		);
 		this.service.updateCharacteristic(
 			this.platform.Characteristic.SecuritySystemTargetState,
-			this.convertFromOlarmAreaState(this.targetState),
+			this.convertFromOlarmAreaStateToTargetState(this.targetState)
 		);
 	}
 }

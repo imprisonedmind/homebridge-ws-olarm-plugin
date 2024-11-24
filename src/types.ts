@@ -35,17 +35,17 @@ export interface OlarmArea {
 }
 
 export enum OlarmAreaState {
-	Armed = 'arm',
-	Disarmed = 'disarm',
-	ArmedStay = 'stay',
-	ArmedSleep = 'sleep',
-	NotReady = 'notready',
-	Triggered = 'activated',
+	Armed = "arm",
+	Disarmed = "disarm",
+	ArmedStay = "stay",
+	ArmedSleep = "sleep",
+	NotReady = "notready",
+	Triggered = "activated",
 }
 
 export enum OlarmAreaAction {
-	Arm = 'arm',
-	Stay = 'stay',
-	Disarm = 'disarm',
-	Sleep = 'sleep',
+	Arm = "arm",
+	Stay = "stay",
+	Disarm = "disarm",
+	Sleep = "sleep",
 }

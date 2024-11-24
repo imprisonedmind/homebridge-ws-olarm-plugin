@@ -8,11 +8,11 @@ import type {
 	Service,
 } from "homebridge";
 
-import {PLATFORM_NAME, PLUGIN_NAME} from "./settings";
-import {OlarmAreaPlatformAccessory} from "./platformAccessory";
-import {Olarm} from "./olarm";
-import mqtt, {MqttClient} from 'mqtt';
-import {Auth, Device} from "./auth";
+import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
+import { OlarmAreaPlatformAccessory } from "./platformAccessory";
+import { Olarm } from "./olarm";
+import mqtt, { MqttClient } from "mqtt";
+import { Auth, Device } from "./auth";
 
 /**
  * HomebridgePlatform
@@ -21,19 +21,20 @@ import {Auth, Device} from "./auth";
  */
 export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	public readonly Service: typeof Service = this.api.hap.Service;
-	public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+	public readonly Characteristic: typeof Characteristic =
+		this.api.hap.Characteristic;
 
 	public olarm: Olarm | undefined;
 	private auth: Auth | undefined;
 	private mqttClients: Map<string, MqttClient> = new Map();
 
 	// this is used to track restored cached accessories
-	public readonly accessories: PlatformAccessory[] = [];
+	public accessories: PlatformAccessory[] = [];
 
 	constructor(
 		public readonly log: Logger,
 		public readonly config: PlatformConfig,
-		public readonly api: API,
+		public readonly api: API
 	) {
 		this.log.debug("Finished initializing platform:", this.config.name);
 
@@ -42,13 +43,13 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		// in order to ensure they weren't added to homebridge already. This event can also be used
 		// to start discovery of new accessories.
 		this.api.on("didFinishLaunching", () => {
-			this.initializePlugin()
+			this.initializePlugin();
 		});
 	}
 
 	private async initializePlugin() {
 		try {
-			this.log.debug('Storage initialized');
+			this.log.debug("Storage initialized");
 
 			// Initialize Auth
 			this.auth = new Auth({
@@ -66,10 +67,10 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 				mqttClients: this.mqttClients,
 			});
 
-			// Initialize MQTT and Discover Devices
+			// Initialize MQTT and wait for area data before discovering devices
 			await this.initializeOlarmAndMQTT();
 		} catch (error) {
-			this.log.error('Initialization error:', error);
+			this.log.error("Initialization error:", error);
 		}
 	}
 
@@ -78,7 +79,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		const devices = this.auth!.getDevices();
 
 		if (!devices || devices.length === 0) {
-			this.log.error('No devices found for this user.');
+			this.log.error("No devices found for this user.");
 			return;
 		}
 
@@ -92,33 +93,33 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 		// MQTT Connection Options
 		const tokens = this.auth!.getTokens();
 		if (!tokens.accessToken) {
-			this.log.error('No access token available for MQTT connection');
+			this.log.error("No access token available for MQTT connection");
 			return;
 		}
 
 		const mqttOptions: mqtt.IClientOptions = {
-			host: 'mqtt-ws.olarm.com',
+			host: "mqtt-ws.olarm.com",
 			port: 443,
-			username: 'native_app',
-			protocol: 'wss',
+			username: "native_app",
+			protocol: "wss",
 			password: tokens.accessToken,
 			clientId: `native-app-oauth-${device.IMEI}`,
 		};
 
-		this.log.debug('MQTT Options:', mqttOptions);
+		this.log.debug("MQTT Options:", mqttOptions);
 
 		const mqttClient = mqtt.connect(mqttOptions);
 
-		mqttClient.on('message', (topic, message) => {
-			this.log.info('[MQTT] Message received', topic);
+		mqttClient.on("message", (topic, message) => {
+			this.log.info("[MQTT] Message received", topic);
 			// Pass device.id to processMqttMessage
 			this.olarm!.processMqttMessage(device.id, topic, message.toString());
-			// After processing the message, update devices
+			// After processing the message and updating areas, discover devices
 			this.discoverDevices();
 		});
 
-		mqttClient.on('connect', () => {
-			this.log.info('[MQTT] Connected');
+		mqttClient.on("connect", () => {
+			this.log.info("[MQTT] Connected");
 
 			// Subscribe to the topic to receive messages from the device
 			const subTopic = `so/app/v1/${device.IMEI}`;
@@ -132,25 +133,32 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 					const statusTopic = `si/app/v2/${device.IMEI}/status`;
 					const message = JSON.stringify({ method: "GET" });
 
-					mqttClient.publish(statusTopic, message, { qos: 1 }, (error) => {
-						if (error) {
-							this.log.error(`Failed to publish to topic ${statusTopic}:`, error);
-						} else {
-							this.log.info(`Published GET request to topic ${statusTopic}`);
+					mqttClient.publish(
+						statusTopic,
+						message,
+						{ qos: 1 },
+						(error) => {
+							if (error) {
+								this.log.error(
+									`Failed to publish to topic ${statusTopic}:`,
+									error
+								);
+							} else {
+								this.log.info(`Published GET request to topic ${statusTopic}`);
+							}
 						}
-					});
+					);
 				}
 			});
 		});
 
-		mqttClient.on('error', (error) => {
-			this.log.error('MQTT Client Error:', error);
+		mqttClient.on("error", (error) => {
+			this.log.error("MQTT Client Error:", error);
 		});
 
 		// Store the mqttClient
 		this.mqttClients.set(device.id, mqttClient);
 	}
-
 
 	/**
 	 * This function is invoked when homebridge restores cached accessories from disk at startup.
@@ -164,15 +172,24 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	}
 
 	/**
-	 * This is an example method showing how to register discovered accessories.
-	 * Accessories must only be registered once, previously created accessories
+	 * This method registers discovered accessories.
+	 * Accessories must only be registered once; previously created accessories
 	 * must not be registered again to prevent "duplicate UUID" errors.
 	 */
 	async discoverDevices() {
 		const olarmAreas = this.olarm!.getAreas();
 
+		if (!olarmAreas || olarmAreas.length === 0) {
+			this.log.warn(
+				"No areas available yet. Skipping accessory registration."
+			);
+			return;
+		}
+
 		this.log.info(
-			`Retrieved areas from Olarm: ${olarmAreas.map((a) => a.areaName).join(", ")}`,
+			`Retrieved areas from Olarm: ${olarmAreas
+				.map((a) => a.areaName)
+				.join(", ")}`
 		);
 
 		let accessoryUUIDsToUnregister = this.accessories.map((a) => a.UUID);
@@ -186,27 +203,26 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 			// see if an accessory with the same uuid has already been registered and restored from
 			// the cached devices we stored in the `configureAccessory` method above
 			const existingAccessory = this.accessories.find(
-				(accessory) => accessory.UUID === uuid,
+				(accessory) => accessory.UUID === uuid
 			);
 
 			if (existingAccessory) {
 				// Remove this accessory from the list of items to remove
 				accessoryUUIDsToUnregister = accessoryUUIDsToUnregister.filter(
-					(u) => u !== uuid,
+					(u) => u !== uuid
 				);
 
 				// the accessory already exists
 				this.log.info(
 					"Restoring existing accessory from cache:",
-					existingAccessory.displayName,
+					existingAccessory.displayName
 				);
 
-				// if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+				// Update the accessory context
 				existingAccessory.context.area = area;
 				this.api.updatePlatformAccessories([existingAccessory]);
 
 				// create the accessory handler for the restored accessory
-				// this is imported from `platformAccessory.ts`
 				new OlarmAreaPlatformAccessory(this, existingAccessory);
 			} else {
 				// the accessory does not yet exist, so we need to create it
@@ -215,47 +231,54 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 				// create a new accessory
 				const accessory = new this.api.platformAccessory(
 					area.areaName || "no area name",
-					uuid,
+					uuid
 				);
 
 				// store a copy of the device object in the `accessory.context`
-				// the `context` property can be used to store any data about the accessory you may need
 				accessory.context.area = area;
 
 				// create the accessory handler for the newly create accessory
-				// this is imported from `platformAccessory.ts`
 				new OlarmAreaPlatformAccessory(this, accessory);
 
 				// link the accessory to your platform
 				this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
 					accessory,
 				]);
+
+				// Add the accessory to the cache
+				this.accessories.push(accessory);
 			}
 		}
 
 		if (accessoryUUIDsToUnregister.length > 0) {
 			this.log.info(
-				`Some accessories need to be unregistered (${accessoryUUIDsToUnregister.length})`,
+				`Some accessories need to be unregistered (${accessoryUUIDsToUnregister.length})`
 			);
 			for (const uuid of accessoryUUIDsToUnregister) {
 				const accessoryToUnregister = this.accessories.find(
-					(accessory) => accessory.UUID === uuid,
+					(accessory) => accessory.UUID === uuid
 				);
 				if (accessoryToUnregister) {
-					// it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`,
-					//  eg. remove platform accessories when no longer present
+					// Remove platform accessories when no longer present
 					this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
 						accessoryToUnregister,
 					]);
 					this.log.info(
 						"Removing existing accessory from cache:",
-						accessoryToUnregister.displayName,
+						accessoryToUnregister.displayName
+					);
+
+					// Remove from the accessories cache
+					this.accessories = this.accessories.filter(
+						(a) => a.UUID !== uuid
 					);
 				} else {
-					this.log.info("WARNING: could not find accessory with UUID", uuid);
+					this.log.info(
+						"WARNING: could not find accessory with UUID",
+						uuid
+					);
 				}
 			}
 		}
 	}
-
 }

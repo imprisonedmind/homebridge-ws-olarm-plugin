@@ -8,6 +8,7 @@ import { URLSearchParams } from 'url';
 
 export interface Tokens {
 	userIndex: number | null;
+	userId: string | null;
 	accessToken: string | null;
 	refreshToken: string | null;
 	tokenExpiration: number | null;
@@ -58,13 +59,20 @@ export class Auth {
 		} else {
 			// Optionally refresh the access token if it's expired
 			await this.ensureAccessToken();
+
+			// Ensure userIndex and userId are set
+			if (this.userIndex === null || this.userId === null) {
+				await this.fetchUserIndex();
+				await this.saveTokensToStorage(); // Save updated tokens with userId
+			}
 		}
-		await this.fetchDevices()
+		await this.fetchDevices();
 	}
 
 	public getTokens(): Tokens {
 		return {
 			userIndex: this.userIndex,
+			userId: this.userId,
 			accessToken: this.accessToken,
 			refreshToken: this.refreshToken,
 			tokenExpiration: this.tokenExpiration,
@@ -171,24 +179,36 @@ export class Auth {
 
 	private async refreshAccessToken() {
 		if (!this.refreshToken) {
-			this.log.error('No stored refresh token, logging in...', this.refreshToken);
+			this.log.error(
+				"No stored refresh token, logging in...",
+				this.refreshToken
+			);
 			await this.login();
 			return;
 		}
-		const response = await fetch('https://auth.olarm.com/api/v4/oauth/refresh', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-			},
-			body: new URLSearchParams({ort: this.refreshToken}).toString(),
-		});
+		const response = await fetch(
+			"https://auth.olarm.com/api/v4/oauth/refresh",
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				body: new URLSearchParams({ ort: this.refreshToken }).toString(),
+			}
+		);
 		if (!response.ok) {
-			throw new Error('Token refresh failed');
+			throw new Error("Token refresh failed");
 		}
 		const data = await response.json();
 		this.accessToken = data.oat;
 		this.refreshToken = data.ort;
 		this.tokenExpiration = data.oatExpire;
+
+		// Fetch userIndex and userId if they are missing
+		if (this.userIndex === null || this.userId === null) {
+			await this.fetchUserIndex();
+		}
+
 		await this.saveTokensToStorage();
 	}
 
@@ -204,15 +224,17 @@ export class Auth {
 			if (fs.existsSync(this.tokensFilePath)) {
 				const tokens: Tokens = await fs.readJSON(this.tokensFilePath);
 				this.userIndex = tokens.userIndex;
+				this.userId = tokens.userId; // Load userId
 				this.accessToken = tokens.accessToken;
 				this.refreshToken = tokens.refreshToken;
 				this.tokenExpiration = tokens.tokenExpiration;
 			} else {
-				this.log.debug('No tokens found in storage');
+				this.log.debug("No tokens found in storage");
 			}
 		} catch (error) {
-			this.log.error('Failed to load tokens from storage:', error);
+			this.log.error("Failed to load tokens from storage:", error);
 			this.userIndex = null;
+			this.userId = null;
 			this.accessToken = null;
 			this.refreshToken = null;
 			this.tokenExpiration = null;
@@ -224,22 +246,26 @@ export class Auth {
 			this.accessToken &&
 			this.refreshToken &&
 			this.tokenExpiration &&
-			this.userIndex !== null
+			this.userIndex !== null &&
+			this.userId !== null // Ensure userId is not null
 		) {
 			const tokens = {
 				userIndex: this.userIndex,
+				userId: this.userId, // Save userId
 				accessToken: this.accessToken,
 				refreshToken: this.refreshToken,
 				tokenExpiration: this.tokenExpiration,
 			};
 			try {
 				await fs.writeJSON(this.tokensFilePath, tokens);
-				this.log.debug('Tokens saved to storage');
+				this.log.debug("Tokens saved to storage");
 			} catch (error) {
-				this.log.error('Failed to save tokens to storage:', error);
+				this.log.error("Failed to save tokens to storage:", error);
 			}
 		} else {
-			this.log.warn('Skipping saving tokens to storage due to missing values');
+			this.log.warn(
+				"Skipping saving tokens to storage due to missing values"
+			);
 		}
 	}
 	// end

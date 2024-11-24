@@ -1,7 +1,12 @@
-import {Logger} from 'homebridge';
-import {AlarmPayload, OlarmArea, OlarmAreaAction, OlarmAreaState} from './types'; // Import types from a shared file
-import {Auth, Device} from './auth';
-import {MqttClient} from "mqtt";
+import { Logger } from "homebridge";
+import {
+	AlarmPayload,
+	OlarmArea,
+	OlarmAreaAction,
+	OlarmAreaState,
+} from "./types"; // Import types from a shared file
+import { Auth, Device } from "./auth";
+import { MqttClient } from "mqtt";
 
 interface olarmProps {
 	auth: Auth;
@@ -16,7 +21,7 @@ export class Olarm {
 	private devicesMap: Map<string, Device> = new Map();
 	private mqttClients: Map<string, MqttClient>;
 
-	constructor({auth, log, mqttClients}: olarmProps) {
+	constructor({ auth, log, mqttClients }: olarmProps) {
 		this.auth = auth;
 		this.log = log;
 		this.mqttClients = mqttClients;
@@ -29,17 +34,21 @@ export class Olarm {
 	}
 
 	// Method to process MQTT messages
-	public processMqttMessage(deviceId: string, topic: string, message: string) {
+	public processMqttMessage(
+		deviceId: string,
+		topic: string,
+		message: string
+	) {
 		try {
 			const payload: AlarmPayload = JSON.parse(message);
-			if (payload.type === 'alarmPayload') {
-				this.log.debug('Processing MQTT alarm payload');
+			if (payload.type === "alarmPayload") {
+				this.log.debug("Processing MQTT alarm payload");
 				this.parseAreasFromPayload(deviceId, payload);
 			} else {
-				this.log.debug('Received non-alarm MQTT message');
+				this.log.debug("Received non-alarm MQTT message");
 			}
 		} catch (error) {
-			this.log.error('Failed to parse MQTT message:', error);
+			this.log.error("Failed to parse MQTT message:", error);
 		}
 	}
 
@@ -62,21 +71,21 @@ export class Olarm {
 		}
 
 		this.areas = newAreas; // Update the internal areas state
-		this.log.debug('Updated areas:', this.areas);
+		this.log.debug("Updated areas:", this.areas);
 	}
 
 	// Convert area state from string to OlarmAreaState enum
 	private convertAreaState(state: string): OlarmAreaState {
 		switch (state) {
-			case 'arm':
+			case "arm":
 				return OlarmAreaState.Armed;
-			case 'disarm':
+			case "disarm":
 				return OlarmAreaState.Disarmed;
-			case 'stay':
+			case "stay":
 				return OlarmAreaState.ArmedStay;
-			case 'notready':
+			case "notready":
 				return OlarmAreaState.NotReady;
-			case 'activated':
+			case "activated":
 				return OlarmAreaState.Triggered;
 			default:
 				this.log.warn(`Unknown area state received: ${state}`);
@@ -89,7 +98,7 @@ export class Olarm {
 		return this.areas;
 	}
 
-	// Optionally, you can have methods to handle area actions as before
+	// Method to handle area actions
 	public async setArea(area: OlarmArea, action: OlarmAreaAction) {
 		// Retrieve the MQTT client for the device
 		const mqttClient = this.mqttClients.get(area.deviceId);
@@ -109,8 +118,12 @@ export class Olarm {
 		const userIndex = this.auth.getUserIndex();
 		const userId = this.auth.getUserId();
 
-		if (!userIndex || !userId) {
-			this.log.error('User index or user ID is missing');
+		if (!userIndex) {
+			this.log.error("User index is missing");
+			return;
+		}
+		if (!userId) {
+			this.log.error("user ID is missing");
 			return;
 		}
 
@@ -119,10 +132,10 @@ export class Olarm {
 
 		// Construct the payload
 		const payload = {
-			method: 'POST',
-			userIndex: userIndex.toString(),
-			userId: userId,
-			access_token: '', // Leave empty if required
+			method: "POST",
+			// userIndex: userIndex.toString(),
+			// userId: userId,
+			// access_token: "", // Leave empty if required
 			data: [action, area.areaNumber],
 		};
 
