@@ -1,9 +1,9 @@
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
-export const PLATFORM_NAME = 'OlarmHomebridgePlugin';
+export const PLATFORM_NAME = 'OlarmWSHomebridgePlugin';
 
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = 'homebridge-olarm-plugin';
+export const PLUGIN_NAME = 'homebridge-ws-olarm-plugin';

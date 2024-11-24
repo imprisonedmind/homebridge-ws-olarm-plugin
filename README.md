@@ -1,4 +1,4 @@
-# homebridge-olarm-plugin
+# homebridge-ws-olarm-plugin
 
 This plugin creates a HomeKit interface for an [Olarm](https://olarm.co) alarm system.
 
@@ -6,14 +6,14 @@ This plugin creates a HomeKit interface for an [Olarm](https://olarm.co) alarm s
 
 ### Installing
 
-1. On your Homebridge device, run `npm i -g homebridge-olarm-plugin`
+1. On your Homebridge device, run `npm i -g homebridge-ws-olarm-plugin`
 2. ~~Create an API key on Olarm ([here](https://user.olarm.co/#/api))~~ // no longer 
    required, prefer user/pass auth.
 2. Set up the new platform in your Homebridge config.json
 ```
 {
-  "platform": "OlarmHomebridgePlugin",
-  "name": "homebridge-olarm-plugin",
+  "platform": "OlarmWSHomebridgePlugin",
+  "name": "homebridge-ws-olarm-plugin",
   "userEmailPhone": "<your preffered login method>",
   "userPass": "<your password>"
   "tokens": "tokens.json"
@@ -52,8 +52,8 @@ _Note: YMMV with setup guides below_
 3. Update the Homebridge `config.json` with this platform:
 ```
 {
-  "platform": "OlarmHomebridgePlugin",
-  "name": "homebridge-olarm-plugin",
+  "platform": "OlarmWSHomebridgePlugin",
+  "name": "homebridge-ws-olarm-plugin",
   "userEmailPhone": "<your preffered login method>",
   "tokens": "tokens.json"
 }

@@ -1,6 +1,6 @@
 {
-  "name": "homebridge-olarm-plugin",
-  "displayName": "OlarmHomebridgePlugin",
+  "name": "homebridge-ws-olarm-plugin",
+  "displayName": "OlarmWSHomebridgePlugin",
   "version": "1.0.1",
   "description": "A HomeKit interface for an [Olarm](https://olarm.co) alarm system.",
   "main": "dist/index.js",
@@ -9,7 +9,8 @@
     "prepublishOnly": "npm run build",
     "watch": "npm run build && npm link && nodemon"
   },
-  "author": "Louw Hopley <louw@hopley.co.za>",
+  "author": "Luke Stephens <lukexstephens@gmail.com",
+  "orignalAuther": "Louw Hopley <louw@hopley.co.za>",
   "engines": {
     "node": ">=14.18.1",
     "homebridge": ">=1.3.5"
@@ -25,21 +26,21 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/LouwHopley/homebridge-olarm-plugin.git"
+    "url": "git://github.com/imprisonedmind/homebridge-ws-olarm-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/LouwHopley/homebridge-olarm-plugin/issues"
+    "url": "https://github.com/imprisonedmind/homebridge-ws-olarm-plugin/issues"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
     "@types/node-fetch": "^2.6.3",
+    "@types/node-persist": "^3.1.8",
     "homebridge": "^1.6.1",
     "node-fetch": "^2.6.1",
     "nodemon": "^2.0.22",
     "rimraf": "^5.0.0",
-    "typescript": "^5.0.4"
-  },
-  "dependencies": {
-    "fs": "^0.0.1-security"
+    "typescript": "^5.0.4",
+    "mqtt": "^5.10.2",
+    "node-persist": "^4.0.3"
   }
 }

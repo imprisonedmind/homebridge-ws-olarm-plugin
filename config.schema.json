@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "OlarmHomebridgePlugin",
+  "pluginAlias": "OlarmWSHomebridgePlugin",
   "pluginType": "platform",
   "singular": true,
   "schema": {

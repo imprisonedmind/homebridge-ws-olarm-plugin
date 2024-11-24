@@ -131,7 +131,7 @@ export class OlarmAreaPlatformAccessory {
 	 * Handle requests to get the current value of the "Security System Current State" characteristic
 	 */
 	async handleSecuritySystemCurrentStateGet() {
-		const olarmAreas = await this.platform.olarm.getAreas();
+		const olarmAreas = await this.platform.olarm!.getAreas();
 		const area = this.accessory.context.area as OlarmArea;
 		const olarmArea = olarmAreas.find((oa) => oa.areaName === area.areaName);
 
@@ -186,7 +186,7 @@ export class OlarmAreaPlatformAccessory {
 		this.targetState = olarmAreaStateValue;
 
 		// Ping olarm to update
-		await this.platform.olarm.setArea(area, olarmAreaAction);
+		await this.platform.olarm!.setArea(area, olarmAreaAction);
 
 		// Update actual state
 		this.currentState = this.targetState;

@@ -12,8 +12,10 @@ import {PLATFORM_NAME, PLUGIN_NAME} from "./settings";
 import {OlarmAreaPlatformAccessory} from "./platformAccessory";
 import {Olarm} from "./olarm";
 
-import {AuthStorage} from "./authStorage";
 import * as path from "path";
+import storage from 'node-persist';
+import mqtt, {MqttClient} from 'mqtt';
+import {Auth} from "./auth";
 
 /**
  * HomebridgePlatform
@@ -22,11 +24,14 @@ import * as path from "path";
  */
 export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	public readonly Service: typeof Service = this.api.hap.Service;
-	public readonly Characteristic: typeof Characteristic =
-		this.api.hap.Characteristic;
-	public readonly olarm: Olarm;
+	public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
-	// this is used to track restored cached accessorzies
+	public olarm: Olarm | undefined;
+	public mqttClient: MqttClient | undefined;
+	private auth: Auth | undefined;
+	private readonly storage: storage.LocalStorage;
+
+	// this is used to track restored cached accessories
 	public readonly accessories: PlatformAccessory[] = [];
 
 	constructor(
@@ -36,28 +41,83 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	) {
 		this.log.debug("Finished initializing platform:", this.config.name);
 
-		const storagePath = path.join(this.api.user.storagePath(), "tokens.json");
-		const authStorage = new AuthStorage(storagePath);
-
-		// Set up olarm
-		// this.olarm = new Olarm(this.config.apiKey, this.log);
-		this.olarm = new Olarm({
-			userEmailPhone: this.config.userEmailPhone,
-			userPass: this.config.userPass,
-			log: this.log,
-			authStorage: authStorage,
+		// Initialize node-persist storage
+		this.storage = storage.create({
+			dir: path.join(this.api.user.persistPath(), PLATFORM_NAME),
 		});
 
-		// When this event is fired it means Homebridge has restored all cached accessories from disk.
-		// Dynamic Platform plugins should only register new accessories after this event was fired,
-		// in order to ensure they weren't added to homebridge already. This event can also be used
-		// to start discovery of new accessories.
-		this.api.on("didFinishLaunching", () => {
-			log.debug("Executed didFinishLaunching callback");
-			// run the method to discover / register your devices as accessories
-			this.discoverDevices();
+		this.storage.init().then(() => {
+			this.log.debug('Storage initialized');
+
+			// Initialize Auth
+			this.auth = new Auth({
+				userEmailPhone: this.config.userEmailPhone,
+				userPass: this.config.userPass,
+				storage: this.storage,
+				log: this.log,
+			});
+
+			this.auth.initialize().then(() => {
+				this.initializeOlarmAndMQTT();
+			});
 		});
 	}
+
+
+	private async initializeOlarmAndMQTT() {
+		// Initialize Olarm
+		this.olarm = new Olarm({auth: this.auth!, log: this.log});
+
+		// Get tokens for MQTT
+		const tokens = this.auth!.getTokens();
+		if (!tokens.accessToken) {
+			this.log.error('No access token available for MQTT connection');
+			return;
+		}
+
+		// MQTT Connection Options
+		const mqttOptions: mqtt.IClientOptions = {
+			// "mqtt-ws.olarm.com"
+			host: this.config.mqttHost,
+			port: 443,
+			username: 'native_app',
+			protocol: 'wss',
+			// password = accessToken
+			password: tokens.accessToken,
+			clientId: `native-app-oauth-${this.config.imei}`, // unique client ID
+		};
+
+		this.log.debug('MQTT Options:', mqttOptions);
+		this.mqttClient = mqtt.connect(mqttOptions);
+
+		this.mqttClient.on('message', (topic, message) => {
+			this.log.info('[MQTT] General <-', topic);
+		});
+
+		this.mqttClient.on('connect', () => {
+			this.log.info('[MQTT] Connected', this.config.ssc);
+			const subTopic = `so/app/v1/867556040470604`;
+			this.mqttClient?.subscribe(subTopic, (err) => {
+				if (err) {
+					this.log.error(`Failed to subscribe to topic: ${err}`);
+				} else {
+					this.log.info(`Subscribed to topic: ${subTopic}`);
+					// When this event is fired it means Homebridge has restored all cached accessories from disk.
+					// Dynamic Platform plugins should only register new accessories after this event was fired,
+					// in order to ensure they weren't added to homebridge already. This event can also be used
+					// to start discovery of new accessories.
+					this.api.on("didFinishLaunching", () => {
+						this.discoverDevices();
+					});
+				}
+			});
+		});
+
+		this.mqttClient.on('error', (error) => {
+			this.log.error('MQTT Client Error:', error);
+		});
+	}
+
 
 	/**
 	 * This function is invoked when homebridge restores cached accessories from disk at startup.
@@ -76,7 +136,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 	 * must not be registered again to prevent "duplicate UUID" errors.
 	 */
 	async discoverDevices() {
-		const olarmAreas = await this.olarm.getAreas();
+		const olarmAreas = await this.olarm!.getAreas();
 
 		this.log.info(
 			`Retrieved areas from Olarm: ${olarmAreas.map((a) => a.areaName).join(", ")}`,
