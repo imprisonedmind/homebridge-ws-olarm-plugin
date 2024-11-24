@@ -8,7 +8,6 @@
 
 This plugin utilises WebSockets and [MQTT](https://github.com/mqttjs) to speak
 directly to an [Olarm](https://olarm.co) Communicator.
-<br>
 It's intent is to be used to control your alarm system via creating HomeKit and Google
 Home Interfaces with
 [homebridge](https://github.com/homebridge/homebridge).
