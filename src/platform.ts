@@ -46,6 +46,14 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 			dir: path.join(this.api.user.persistPath(), PLATFORM_NAME),
 		});
 
+		// When this event is fired it means Homebridge has restored all cached accessories from disk.
+		// Dynamic Platform plugins should only register new accessories after this event was fired,
+		// in order to ensure they weren't added to homebridge already. This event can also be used
+		// to start discovery of new accessories.
+		this.api.on("didFinishLaunching", () => {
+			this.initializePlugin()
+		});
+
 		this.storage.init().then(() => {
 			this.log.debug('Storage initialized');
 
@@ -57,10 +65,32 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 				log: this.log,
 			});
 
-			this.auth.initialize().then(() => {
-				this.initializeOlarmAndMQTT();
-			});
 		});
+	}
+
+	private async initializePlugin() {
+		try {
+			await this.storage.init();
+			this.log.debug('Storage initialized');
+
+			// Initialize Auth
+			this.auth = new Auth({
+				userEmailPhone: this.config.userEmailPhone,
+				userPass: this.config.userPass,
+				storage: this.storage,
+				log: this.log,
+			});
+
+			await this.auth.initialize();
+
+			// Initialize Olarm
+			this.olarm = new Olarm({auth: this.auth, log: this.log});
+
+			// Initialize MQTT and Discover Devices
+			await this.initializeOlarmAndMQTT();
+		} catch (error) {
+			this.log.error('Initialization error:', error);
+		}
 	}
 
 
@@ -77,12 +107,10 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 
 		// MQTT Connection Options
 		const mqttOptions: mqtt.IClientOptions = {
-			// "mqtt-ws.olarm.com"
-			host: this.config.mqttHost,
+			host: "mqtt-ws.olarm.com",
 			port: 443,
 			username: 'native_app',
 			protocol: 'wss',
-			// password = accessToken
 			password: tokens.accessToken,
 			clientId: `native-app-oauth-${this.config.imei}`, // unique client ID
 		};
@@ -102,13 +130,7 @@ export class OlarmHomebridgePlatform implements DynamicPlatformPlugin {
 					this.log.error(`Failed to subscribe to topic: ${err}`);
 				} else {
 					this.log.info(`Subscribed to topic: ${subTopic}`);
-					// When this event is fired it means Homebridge has restored all cached accessories from disk.
-					// Dynamic Platform plugins should only register new accessories after this event was fired,
-					// in order to ensure they weren't added to homebridge already. This event can also be used
-					// to start discovery of new accessories.
-					this.api.on("didFinishLaunching", () => {
-						this.discoverDevices();
-					});
+					// this.discoverDevices();
 				}
 			});
 		});

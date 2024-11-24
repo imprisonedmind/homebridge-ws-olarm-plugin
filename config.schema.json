@@ -20,12 +20,6 @@
         "type": "string",
         "title": "User Password",
         "description": "The password used to log in to your Olarm account."
-      },
-      "tokenStorageFileName": {
-        "type": "string",
-        "title": "Token Storage File Name",
-        "description": "The name of the file where the authentication tokens will be stored.",
-        "default": "tokens.json"
       }
     }
   }
