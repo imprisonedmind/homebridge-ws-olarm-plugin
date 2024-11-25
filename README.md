@@ -19,7 +19,7 @@ gave me a significant starting point.
 
 ## More Information
 
-For installation, usage and contribution please see the
+For installation, usage, contribution and project roadmap please see the
 [Wiki](https://github.com/imprisonedmind/homebridge-ws-olarm-plugin/wiki)
 
 
