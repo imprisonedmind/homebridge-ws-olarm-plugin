@@ -24,13 +24,7 @@ For installation, usage, contribution and project roadmap please see the
 
 
 ## Examples
+[![Watch the video](https://img.youtube.com/vi/tb6msVvILo8/0.jpg)](https://youtu.be/tb6msVvILo8)
 
-<div style="display: flex; gap: 24px;">
-  <a href="https://i.imgur.com/7hk5Rwl.mp4">
-    <img src="https://i.imgur.com/stV4py9.png" alt="iOS Siri" style="width: 150px;">
-  </a>
-  <a href="https://i.imgur.com/0vRBzBx.mp4">
-    <img src="https://i.imgur.com/cldf2hk.png" alt="Android Google Home" style="width: 150px;">
-  </a>
-</div>
+
 
