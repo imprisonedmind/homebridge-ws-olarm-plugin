@@ -24,7 +24,7 @@ For installation, usage, contribution and project roadmap please see the
 
 
 ## Examples
-[![Watch the video](https://img.youtube.com/vi/tb6msVvILo8/0.jpg)](https://youtu.be/tb6msVvILo8)
+[![Watch the video](https://i.imgur.com/L54SAYp.jpeg)]([https://youtu.be/tb6msVvILo8](https://youtu.be/tb6msVvILo8))
 
 
 
