@@ -1,7 +1,7 @@
 {
   "name": "homebridge-ws-olarm-plugin",
   "displayName": "OlarmWSHomebridgePlugin",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "A WS/MQTT homebridge plugin for an [Olarm](https://olarm.co) alarm system.",
   "main": "dist/index.js",
   "scripts": {
