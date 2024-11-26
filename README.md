@@ -20,7 +20,9 @@ gave me a significant starting point.
 ## More Information
 
 For installation, usage, contribution and project roadmap please see the
-[Wiki](https://github.com/imprisonedmind/homebridge-ws-olarm-plugin/wiki)
+[Wiki](https://github.com/imprisonedmind/homebridge-ws-olarm-plugin/wiki).
+<br>
+For a more detailed installation guide, please see this [blog post](https://lukestephens.co.za/writing/get-olarm-working-with-homekit-&-g-home/14af90ec476b80d5b34deec12c0d0dc3).
 
 
 ## Examples
